@@ -8,21 +8,16 @@
 
 ## Completed Milestones
 - [x] Inisialisasi Git & Guardrails (`.gitignore`, `.graphifyignore`, `.agents/session-briefing.md`)
-- [x] Setup Frontend (React 18, Vite, Tailwind CSS v4, Framer Motion, Lucide Icons, Zustand):
-  - [x] Typed IPC Bridge (`src/types/player.ts`, `src/services/playerApi.ts`)
-  - [x] State Store tersinkronisasi event stream (`src/store/usePlayerStore.ts`)
-  - [x] Frameless TitleBar dengan drag region & native window controls (`src/components/TitleBar.tsx`)
-  - [x] VideoCanvas dengan MPV passthrough surface & drag-and-drop zone (`src/components/VideoCanvas.tsx`)
-  - [x] Glassmorphic ControlDock dengan auto-hide 2 detik & scrubber presisi (`src/components/ControlDock.tsx`, `src/hooks/useIdleTimer.ts`)
-  - [x] Pintasan keyboard global (`Space`, `Arrows`, `F`, `M`)
-- [x] Setup Backend Rust & Tauri v2 (`src-tauri`):
-  - [x] `Cargo.toml`, `build.rs`, `tauri.conf.json`, `capabilities/default.json`
-  - [x] Integrasi DWM Windows 11 Mica/Acrylic & Dark Mode (`src-tauri/src/window.rs`)
-  - [x] Dynamic FFI runtime loader untuk `libmpv` (`src-tauri/src/mpv/raw.rs`)
-  - [x] Controller thread-safe & event polling thread Tokio (`src-tauri/src/mpv/mod.rs`)
-  - [x] Tauri IPC command handlers (`src-tauri/src/mpv/commands.rs`, `src-tauri/src/lib.rs`)
-- [x] Verifikasi Kompilasi:
-  - [x] `npm run build` lulus (Vite + TypeScript)
-  - [x] `cargo check` lulus (Rust MSVC)
-- [x] Dokumentasi Setup & Linking Windows 11 (`README.md`)
-- [x] Graphify Knowledge Graph terbangun (399 nodes, 549 edges, 23 communities)
+- [x] Perbaikan Git Push: Mengabaikan seluruh file binary (`*.dll`, `*.lib`, `*.a`, `*.7z`) dari Git tracking dan memindahkan unduhan ke `scripts/setup_mpv.py` sehingga `git push` aman dari limit 100MB GitHub.
+- [x] Peningkatan Fitur Kelas MPC-HC:
+  - [x] Right-Click Glassmorphic Context Menu (`src/components/ContextMenu.tsx`)
+  - [x] OSD Statistics HUD real-time (`Ctrl+J` / `Tab` / `I`) (`src/components/StatsOverlay.tsx`)
+  - [x] Audio Boost hingga 150% dengan soft limiter (`src/components/ControlDock.tsx`)
+  - [x] Frame-by-Frame Stepping (`.` dan `,`)
+  - [x] Playback Speed dinamis 0.25x - 3.0x (`[` / `]` / `Backspace`)
+  - [x] Mouse Scroll Wheel Volume Control dengan visual OSD Toast (`src/components/OsdToast.tsx`)
+  - [x] Chapter Markers pada timeline scrubber dengan tooltip hover
+  - [x] Always-on-Top toggle (`Ctrl+T` / tombol Pin pada title bar)
+  - [x] Subtitle & Audio sync delay ($\pm 0.1\text{s}$) serta penyesuaian ukuran font
+- [x] Otomasi Setup Libmpv (`npm run setup:mpv`)
+- [x] Verifikasi Kompilasi (Frontend & Backend lulus 0 error)
