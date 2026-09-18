@@ -141,6 +141,17 @@ export const playerApi = {
     return await invoke<TrackInfo[]>('get_tracks');
   },
 
+  /**
+   * Open native Windows file picker dialog
+   */
+  async openFileDialog(): Promise<string | null> {
+    if (!isTauriEnvironment()) {
+      console.warn('[Web Mock] openFileDialog');
+      return null;
+    }
+    return await invoke<string | null>('open_file_dialog');
+  },
+
   // Window Controls
   async minimizeWindow(): Promise<void> {
     if (!isTauriEnvironment()) return;

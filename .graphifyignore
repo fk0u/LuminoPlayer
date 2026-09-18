@@ -10,6 +10,11 @@ coverage/
 .next/
 .turbo/
 .cache/
+*.dll
+*.lib
+*.a
+*.7z
+include/
 target/
 src-tauri/target/
 graphify-out/

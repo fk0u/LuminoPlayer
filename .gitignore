@@ -11,6 +11,15 @@ coverage/
 .vite/
 .cache/
 
+# Binary media & dev dependencies (libmpv, DLLs)
+*.dll
+*.lib
+*.a
+*.7z
+*.zip
+*.tar.*
+include/
+
 # Graphify & Knowledge artifacts
 graphify-out/
 graphify-obsidian/

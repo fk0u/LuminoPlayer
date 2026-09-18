@@ -111,6 +111,7 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
     } catch (err) {
       console.error('Failed to load file:', err);
       set({ isBuffering: false });
+      alert(`Gagal memutar berkas: ${err}`);
     }
   },
 

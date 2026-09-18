@@ -1,15 +1,13 @@
 use tauri::{Runtime, WebviewWindow};
 
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::Graphics::Dwm::{
-    DwmSetWindowAttribute, DWMWINDOWATTRIBUTE,
-};
+use windows_sys::Win32::Graphics::Dwm::DwmSetWindowAttribute;
 
 // DWM System Backdrop Constants for Windows 11 Build 22621+
 #[cfg(target_os = "windows")]
-const DWMWA_USE_IMMERSIVE_DARK_MODE: DWMWINDOWATTRIBUTE = 20;
+const DWMWA_USE_IMMERSIVE_DARK_MODE: u32 = 20;
 #[cfg(target_os = "windows")]
-const DWMWA_SYSTEMBACKDROP_TYPE: DWMWINDOWATTRIBUTE = 38;
+const DWMWA_SYSTEMBACKDROP_TYPE: u32 = 38;
 
 #[allow(dead_code)]
 #[cfg(target_os = "windows")]

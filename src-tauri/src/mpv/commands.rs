@@ -61,3 +61,18 @@ pub fn get_metadata(mpv: State<'_, Arc<MpvManager>>) -> Result<MediaMetadata, St
 pub fn get_tracks(mpv: State<'_, Arc<MpvManager>>) -> Result<Vec<TrackInfo>, String> {
     Ok(mpv.get_tracks())
 }
+
+#[tauri::command]
+pub async fn open_file_dialog() -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .add_filter(
+            "Media Files",
+            &["mkv", "mp4", "webm", "avi", "mov", "flac", "wav", "mp3", "aac", "alac", "ts", "m4v", "mka", "ogg", "opus"],
+        )
+        .add_filter("All Files", &["*"])
+        .set_title("Pilih Berkas Media - Lumino Player")
+        .pick_file()
+        .await;
+
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}

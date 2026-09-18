@@ -4,23 +4,25 @@
 - **Project Name:** Lumino Player
 - **Architecture:** Tauri v2 (Rust Backend) + libmpv Zero-Copy Hardware Acceleration + Windows 11 Acrylic/Mica (DWM) + React 18 / Vite / Tailwind CSS v4 / Framer Motion / Zustand.
 - **Root Directory:** `d:\ServerData\Project\LuminoPlayer`
-- **Current Status:** Inisialisasi awal proyek dan pembuatan codebase produksi.
+- **Current Status:** Fase inisialisasi arsitektur dan seluruh basis kode awal telah selesai. Kedua pipeline (Frontend Vite & Backend Rust) terverifikasi lulus kompilasi tanpa error.
 
-## Goals & Milestones
+## Completed Milestones
 - [x] Inisialisasi Git & Guardrails (`.gitignore`, `.graphifyignore`, `.agents/session-briefing.md`)
-- [ ] Implementasi konfigurasi & modul Rust backend (`src-tauri`):
-  - [ ] `Cargo.toml` & `build.rs`
-  - [ ] `tauri.conf.json` & `capabilities/default.json`
-  - [ ] `window.rs` (Windows 11 DWM Mica/Acrylic backdrop & frameless controls)
-  - [ ] `mpv/` engine controller, event dispatcher, dan Tauri IPC commands
-  - [ ] `main.rs` & `lib.rs`
-- [ ] Implementasi Frontend React + Vite:
-  - [ ] `package.json`, `vite.config.ts`, `tsconfig.json`
-  - [ ] `src/types/player.ts` (Typed IPC Bridge)
-  - [ ] `src/services/playerApi.ts` (Tauri invoke/listen wrapper)
-  - [ ] `src/store/usePlayerStore.ts` (Zustand state synced with MPV events)
-  - [ ] `src/components/TitleBar.tsx` (Frameless drag region & custom controls)
-  - [ ] `src/components/VideoCanvas.tsx` (Direct MPV canvas & drag-and-drop handler)
-  - [ ] `src/components/ControlDock.tsx` (Glassmorphic floating dock, auto-hide, scrubber)
-  - [ ] `src/hooks/useIdleTimer.ts` & Hotkey listeners
-- [ ] Verifikasi build dan dokumentasi eksekusi Windows 11 (`README.md`).
+- [x] Setup Frontend (React 18, Vite, Tailwind CSS v4, Framer Motion, Lucide Icons, Zustand):
+  - [x] Typed IPC Bridge (`src/types/player.ts`, `src/services/playerApi.ts`)
+  - [x] State Store tersinkronisasi event stream (`src/store/usePlayerStore.ts`)
+  - [x] Frameless TitleBar dengan drag region & native window controls (`src/components/TitleBar.tsx`)
+  - [x] VideoCanvas dengan MPV passthrough surface & drag-and-drop zone (`src/components/VideoCanvas.tsx`)
+  - [x] Glassmorphic ControlDock dengan auto-hide 2 detik & scrubber presisi (`src/components/ControlDock.tsx`, `src/hooks/useIdleTimer.ts`)
+  - [x] Pintasan keyboard global (`Space`, `Arrows`, `F`, `M`)
+- [x] Setup Backend Rust & Tauri v2 (`src-tauri`):
+  - [x] `Cargo.toml`, `build.rs`, `tauri.conf.json`, `capabilities/default.json`
+  - [x] Integrasi DWM Windows 11 Mica/Acrylic & Dark Mode (`src-tauri/src/window.rs`)
+  - [x] Dynamic FFI runtime loader untuk `libmpv` (`src-tauri/src/mpv/raw.rs`)
+  - [x] Controller thread-safe & event polling thread Tokio (`src-tauri/src/mpv/mod.rs`)
+  - [x] Tauri IPC command handlers (`src-tauri/src/mpv/commands.rs`, `src-tauri/src/lib.rs`)
+- [x] Verifikasi Kompilasi:
+  - [x] `npm run build` lulus (Vite + TypeScript)
+  - [x] `cargo check` lulus (Rust MSVC)
+- [x] Dokumentasi Setup & Linking Windows 11 (`README.md`)
+- [x] Graphify Knowledge Graph terbangun (399 nodes, 549 edges, 23 communities)

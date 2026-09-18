@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, FileVideo, Music } from 'lucide-react';
+import { listen } from '@tauri-apps/api/event';
 import { usePlayerStore } from '../store/usePlayerStore';
+import { playerApi, isTauriEnvironment } from '../services/playerApi';
 
 export const VideoCanvas: React.FC = () => {
   const isIdle = usePlayerStore((state) => state.isIdle);
@@ -10,6 +12,31 @@ export const VideoCanvas: React.FC = () => {
   const loadFile = usePlayerStore((state) => state.loadFile);
 
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Native Tauri Window Drag & Drop listener
+  useEffect(() => {
+    if (!isTauriEnvironment()) return;
+
+    let unlisten: (() => void) | undefined;
+    
+    // Tauri v2 drag-drop events
+    listen<{ paths: string[] }>('tauri://drag-drop', async (event) => {
+      setIsDragOver(false);
+      if (event.payload.paths && event.payload.paths.length > 0) {
+        const filePath = event.payload.paths[0];
+        await loadFile(filePath);
+      }
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    listen('tauri://drag-enter', () => setIsDragOver(true));
+    listen('tauri://drag-leave', () => setIsDragOver(false));
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [loadFile]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -27,17 +54,17 @@ export const VideoCanvas: React.FC = () => {
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
-      // On Tauri / desktop, file.path contains full filesystem path
-      const filePath = (file as unknown as { path?: string }).path || file.name;
-      await loadFile(filePath);
+      const filePath = (file as unknown as { path?: string }).path;
+      if (filePath) {
+        await loadFile(filePath);
+      }
     }
   };
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const filePath = (file as unknown as { path?: string }).path || file.name;
-      await loadFile(filePath);
+  const handlePickFile = async () => {
+    const selected = await playerApi.openFileDialog();
+    if (selected) {
+      await loadFile(selected);
     }
   };
 
@@ -78,16 +105,13 @@ export const VideoCanvas: React.FC = () => {
               Mendukung 4K/60fps HDR MKV, MP4, WebM, MOV serta audio hi-res FLAC, ALAC, WAV, DTS melalui zero-copy D3D11VA/NVDEC engine.
             </p>
 
-            <label className="glass-button flex items-center gap-2 px-5 py-2.5 rounded-xl cursor-pointer text-xs font-medium text-white shadow-lg">
+            <button
+              onClick={handlePickFile}
+              className="glass-button flex items-center gap-2 px-5 py-2.5 rounded-xl cursor-pointer text-xs font-medium text-white shadow-lg"
+            >
               <FileVideo className="h-4 w-4 text-blue-400" />
               Pilih Berkas Media
-              <input
-                type="file"
-                className="hidden"
-                accept="video/*,audio/*,.mkv,.flac,.wav,.aac,.alac,.mov"
-                onChange={handleFileSelect}
-              />
-            </label>
+            </button>
 
             {/* Badges */}
             <div className="mt-8 flex flex-wrap items-center justify-center gap-2 pt-4 border-t border-white/5 text-[11px] text-slate-400">

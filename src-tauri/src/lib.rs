@@ -41,6 +41,7 @@ pub fn run() {
             mpv_cmds::set_audio_track,
             mpv_cmds::get_metadata,
             mpv_cmds::get_tracks,
+            mpv_cmds::open_file_dialog,
             // Window Commands
             win_cmds::window_minimize,
             win_cmds::window_maximize,
