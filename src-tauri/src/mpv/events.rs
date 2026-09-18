@@ -40,3 +40,34 @@ pub struct MpvEventPayload<T> {
     pub event: String,
     pub data: T,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChapterInfo {
+    pub id: i64,
+    pub title: Option<String>,
+    pub time: f64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct VideoStats {
+    #[serde(rename = "hwdecCurrent")]
+    pub hwdec_current: Option<String>,
+    #[serde(rename = "estimatedFps")]
+    pub estimated_fps: Option<f64>,
+    #[serde(rename = "dropFrameCount")]
+    pub drop_frame_count: Option<i64>,
+    #[serde(rename = "videoBitrate")]
+    pub video_bitrate: Option<f64>,
+    #[serde(rename = "audioBitrate")]
+    pub audio_bitrate: Option<f64>,
+    #[serde(rename = "audioChannels")]
+    pub audio_channels: Option<String>,
+    #[serde(rename = "audioSamplerate")]
+    pub audio_samplerate: Option<i64>,
+    #[serde(rename = "audioCodec")]
+    pub audio_codec: Option<String>,
+    #[serde(rename = "videoCodec")]
+    pub video_codec: Option<String>,
+    #[serde(rename = "aspectRatio")]
+    pub aspect_ratio: Option<String>,
+}

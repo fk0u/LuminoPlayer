@@ -6,7 +6,7 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use tauri::{AppHandle, Emitter};
 
-use events::{MediaMetadata, MpvEventPayload, TrackInfo};
+use events::{ChapterInfo, MediaMetadata, MpvEventPayload, TrackInfo, VideoStats};
 use raw::{
     MpvEventProperty, MpvFunctions, SafeMpvInstance, MPV_EVENT_END_FILE,
     MPV_EVENT_FILE_LOADED, MPV_EVENT_PROPERTY_CHANGE, MPV_EVENT_SHUTDOWN,
@@ -227,10 +227,140 @@ impl MpvManager {
     pub fn set_volume(&self, volume: f64) -> Result<(), String> {
         let guard = self.instance.lock();
         let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
-        let clamped = volume.clamp(0.0, 100.0);
+        let clamped = volume.clamp(0.0, 150.0); // MPC-HC audio boost up to 150%
         *self.current_volume.lock() = clamped;
         inst.set_property("volume", &clamped.to_string())?;
         Ok(())
+    }
+
+    pub fn set_speed(&self, speed: f64) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        let clamped = speed.clamp(0.25, 4.0);
+        inst.set_property("speed", &clamped.to_string())?;
+        Ok(())
+    }
+
+    pub fn step_frame(&self, forward: bool) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        let cmd = if forward { "frame-step" } else { "frame-back-step" };
+        inst.command(cmd)?;
+        Ok(())
+    }
+
+    pub fn set_aspect_ratio(&self, ratio: &str) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        inst.set_property("video-aspect-override", ratio)?;
+        Ok(())
+    }
+
+    pub fn set_sub_delay(&self, seconds: f64) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        inst.set_property("sub-delay", &seconds.to_string())?;
+        Ok(())
+    }
+
+    pub fn set_audio_delay(&self, seconds: f64) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        inst.set_property("audio-delay", &seconds.to_string())?;
+        Ok(())
+    }
+
+    pub fn set_sub_scale(&self, scale: f64) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        let clamped = scale.clamp(0.5, 3.0);
+        inst.set_property("sub-scale", &clamped.to_string())?;
+        Ok(())
+    }
+
+    pub fn add_subtitle_file(&self, path: &str) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        inst.command(&format!("sub-add \"{}\"", path.replace('\\', "/")))?;
+        Ok(())
+    }
+
+    pub fn take_screenshot(&self) -> Result<String, String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        inst.command("screenshot video")?;
+        Ok("Screenshot captured".to_string())
+    }
+
+    pub fn get_stats(&self) -> VideoStats {
+        let guard = self.instance.lock();
+        let inst = match guard.as_ref() {
+            Some(i) => i,
+            None => return VideoStats::default(),
+        };
+
+        let hwdec_current = inst.get_property_string("hwdec-current");
+        let estimated_fps = inst
+            .get_property_string("estimated-vf-fps")
+            .and_then(|s| s.parse::<f64>().ok());
+        let drop_frame_count = inst
+            .get_property_string("drop-frame-count")
+            .and_then(|s| s.parse::<i64>().ok());
+        let video_bitrate = inst
+            .get_property_string("video-bitrate")
+            .and_then(|s| s.parse::<f64>().ok());
+        let audio_bitrate = inst
+            .get_property_string("audio-bitrate")
+            .and_then(|s| s.parse::<f64>().ok());
+        let audio_channels = inst.get_property_string("audio-params/channels");
+        let audio_samplerate = inst
+            .get_property_string("audio-params/samplerate")
+            .and_then(|s| s.parse::<i64>().ok());
+        let audio_codec = inst.get_property_string("audio-codec");
+        let video_codec = inst.get_property_string("video-codec");
+        let aspect_ratio = inst.get_property_string("video-aspect-override");
+
+        VideoStats {
+            hwdec_current,
+            estimated_fps,
+            drop_frame_count,
+            video_bitrate,
+            audio_bitrate,
+            audio_channels,
+            audio_samplerate,
+            audio_codec,
+            video_codec,
+            aspect_ratio,
+        }
+    }
+
+    pub fn get_chapters(&self) -> Vec<ChapterInfo> {
+        let guard = self.instance.lock();
+        let inst = match guard.as_ref() {
+            Some(i) => i,
+            None => return Vec::new(),
+        };
+
+        let count = inst
+            .get_property_string("chapter-list/count")
+            .and_then(|s| s.parse::<usize>().ok())
+            .unwrap_or(0);
+
+        let mut chapters = Vec::new();
+        for i in 0..count {
+            let title = inst.get_property_string(&format!("chapter-list/{}/title", i));
+            let time = inst
+                .get_property_string(&format!("chapter-list/{}/time", i))
+                .and_then(|s| s.parse::<f64>().ok())
+                .unwrap_or(0.0);
+
+            chapters.push(ChapterInfo {
+                id: i as i64,
+                title,
+                time,
+            });
+        }
+        chapters
     }
 
     pub fn toggle_mute(&self) -> Result<bool, String> {

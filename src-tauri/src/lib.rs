@@ -42,11 +42,23 @@ pub fn run() {
             mpv_cmds::get_metadata,
             mpv_cmds::get_tracks,
             mpv_cmds::open_file_dialog,
+            mpv_cmds::set_speed,
+            mpv_cmds::step_frame,
+            mpv_cmds::set_aspect_ratio,
+            mpv_cmds::set_sub_delay,
+            mpv_cmds::set_audio_delay,
+            mpv_cmds::set_sub_scale,
+            mpv_cmds::add_subtitle_file,
+            mpv_cmds::take_screenshot,
+            mpv_cmds::get_stats,
+            mpv_cmds::get_chapters,
+            mpv_cmds::open_subtitle_dialog,
             // Window Commands
             win_cmds::window_minimize,
             win_cmds::window_maximize,
             win_cmds::window_close,
             win_cmds::window_toggle_fullscreen,
+            win_cmds::window_toggle_always_on_top,
         ])
         .run(tauri::generate_context!())
         .expect("error while running lumino player application");

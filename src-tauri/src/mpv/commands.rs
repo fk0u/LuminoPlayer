@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tauri::State;
 
 use super::{
-    events::{MediaMetadata, TrackInfo},
+    events::{ChapterInfo, MediaMetadata, TrackInfo, VideoStats},
     MpvManager,
 };
 
@@ -71,6 +71,71 @@ pub async fn open_file_dialog() -> Result<Option<String>, String> {
         )
         .add_filter("All Files", &["*"])
         .set_title("Pilih Berkas Media - Lumino Player")
+        .pick_file()
+        .await;
+
+    Ok(file.map(|f| f.path().to_string_lossy().to_string()))
+}
+
+#[tauri::command]
+pub fn set_speed(mpv: State<'_, Arc<MpvManager>>, speed: f64) -> Result<(), String> {
+    mpv.set_speed(speed)
+}
+
+#[tauri::command]
+pub fn step_frame(mpv: State<'_, Arc<MpvManager>>, forward: bool) -> Result<(), String> {
+    mpv.step_frame(forward)
+}
+
+#[tauri::command]
+pub fn set_aspect_ratio(mpv: State<'_, Arc<MpvManager>>, ratio: String) -> Result<(), String> {
+    mpv.set_aspect_ratio(&ratio)
+}
+
+#[tauri::command]
+pub fn set_sub_delay(mpv: State<'_, Arc<MpvManager>>, seconds: f64) -> Result<(), String> {
+    mpv.set_sub_delay(seconds)
+}
+
+#[tauri::command]
+pub fn set_audio_delay(mpv: State<'_, Arc<MpvManager>>, seconds: f64) -> Result<(), String> {
+    mpv.set_audio_delay(seconds)
+}
+
+#[tauri::command]
+pub fn set_sub_scale(mpv: State<'_, Arc<MpvManager>>, scale: f64) -> Result<(), String> {
+    mpv.set_sub_scale(scale)
+}
+
+#[tauri::command]
+pub fn add_subtitle_file(mpv: State<'_, Arc<MpvManager>>, path: String) -> Result<(), String> {
+    mpv.add_subtitle_file(&path)
+}
+
+#[tauri::command]
+pub fn take_screenshot(mpv: State<'_, Arc<MpvManager>>) -> Result<String, String> {
+    mpv.take_screenshot()
+}
+
+#[tauri::command]
+pub fn get_stats(mpv: State<'_, Arc<MpvManager>>) -> Result<VideoStats, String> {
+    Ok(mpv.get_stats())
+}
+
+#[tauri::command]
+pub fn get_chapters(mpv: State<'_, Arc<MpvManager>>) -> Result<Vec<ChapterInfo>, String> {
+    Ok(mpv.get_chapters())
+}
+
+#[tauri::command]
+pub async fn open_subtitle_dialog() -> Result<Option<String>, String> {
+    let file = rfd::AsyncFileDialog::new()
+        .add_filter(
+            "Subtitle Files",
+            &["srt", "ass", "ssa", "vtt", "sub", "idx", "lrc"],
+        )
+        .add_filter("All Files", &["*"])
+        .set_title("Pilih Berkas Subtitle - Lumino Player")
         .pick_file()
         .await;
 

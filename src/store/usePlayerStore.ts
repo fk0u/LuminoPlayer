@@ -1,24 +1,36 @@
 import { create } from 'zustand';
 import { playerApi } from '../services/playerApi';
-import type { MediaMetadata, TrackInfo, MpvEventPayload } from '../types/player';
+import type { ChapterInfo, MediaMetadata, MpvEventPayload, TrackInfo, VideoStats } from '../types/player';
 
 interface PlayerStoreState {
   // Playback state
   isPlaying: boolean;
   currentTime: number;
   duration: number;
-  volume: number;
+  volume: number; // 0 to 150 (audio boost)
+  speed: number;
   isMuted: boolean;
   isIdle: boolean;
   isBuffering: boolean;
   isFullscreen: boolean;
+  isAlwaysOnTop: boolean;
   
+  // Audio & Subtitle Sync & Styling
+  aspectRatio: string;
+  subDelay: number;
+  audioDelay: number;
+  subScale: number;
+
   // UI Interaction state
   controlsVisible: boolean;
+  isStatsVisible: boolean;
+  osdMessage: string | null;
   
-  // Metadata & Tracks
+  // Metadata & Tracks & Chapters
   metadata: MediaMetadata | null;
   tracks: TrackInfo[];
+  chapters: ChapterInfo[];
+  stats: VideoStats | null;
 
   // Actions
   initialize: () => Promise<() => void>;
@@ -29,6 +41,19 @@ interface PlayerStoreState {
   seek: (seconds: number) => Promise<void>;
   setVolume: (volume: number) => Promise<void>;
   toggleMute: () => Promise<void>;
+  setSpeed: (speed: number) => Promise<void>;
+  stepFrame: (forward?: boolean) => Promise<void>;
+  setAspectRatio: (ratio: string) => Promise<void>;
+  adjustSubDelay: (delta: number) => Promise<void>;
+  adjustAudioDelay: (delta: number) => Promise<void>;
+  adjustSubScale: (delta: number) => Promise<void>;
+  addSubtitleFile: (path: string) => Promise<void>;
+  openSubtitleDialog: () => Promise<void>;
+  takeScreenshot: () => Promise<void>;
+  toggleAlwaysOnTop: () => Promise<void>;
+  toggleStatsVisible: () => void;
+  refreshStats: () => Promise<void>;
+  showOsd: (text: string, durationMs?: number) => void;
   setControlsVisible: (visible: boolean) => void;
   selectSubtitleTrack: (trackId: number) => Promise<void>;
   selectAudioTrack: (trackId: number) => Promise<void>;
@@ -38,21 +63,40 @@ interface PlayerStoreState {
   closeWindow: () => Promise<void>;
 }
 
+let osdTimer: number | null = null;
+
 export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
   isPlaying: false,
   currentTime: 0,
   duration: 0,
   volume: 80,
+  speed: 1.0,
   isMuted: false,
   isIdle: true,
   isBuffering: false,
   isFullscreen: false,
+  isAlwaysOnTop: false,
+  aspectRatio: '-1',
+  subDelay: 0,
+  audioDelay: 0,
+  subScale: 1.0,
   controlsVisible: true,
+  isStatsVisible: false,
+  osdMessage: null,
   metadata: null,
   tracks: [],
+  chapters: [],
+  stats: null,
+
+  showOsd: (text: string, durationMs = 1500) => {
+    if (osdTimer) window.clearTimeout(osdTimer);
+    set({ osdMessage: text });
+    osdTimer = window.setTimeout(() => {
+      set({ osdMessage: null });
+    }, durationMs);
+  },
 
   initialize: async () => {
-    // Listen to backend MPV events
     const unlisten = await playerApi.listenEvents((payload: MpvEventPayload) => {
       switch (payload.event) {
         case 'time-pos': {
@@ -71,10 +115,10 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
           break;
         }
         case 'file-loaded': {
-          set({ isIdle: false, isPlaying: true });
-          // Fetch initial metadata and tracks
+          set({ isIdle: false, isPlaying: true, speed: 1.0 });
           playerApi.getMetadata().then((meta) => set({ metadata: meta }));
           playerApi.getTracks().then((tracks) => set({ tracks }));
+          playerApi.getChapters().then((chapters) => set({ chapters }));
           break;
         }
         case 'end-file': {
@@ -101,13 +145,16 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
       await playerApi.loadFile(filePath);
       const meta = await playerApi.getMetadata();
       const tracks = await playerApi.getTracks();
+      const chapters = await playerApi.getChapters();
       set({
         metadata: meta,
         tracks,
+        chapters,
         isIdle: false,
         isPlaying: true,
         isBuffering: false,
       });
+      get().showOsd(`Memutar: ${meta.title || filePath.split(/[\\/]/).pop()}`);
     } catch (err) {
       console.error('Failed to load file:', err);
       set({ isBuffering: false });
@@ -120,20 +167,24 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
     if (isPlaying) {
       await playerApi.pause();
       set({ isPlaying: false });
+      get().showOsd('Jeda');
     } else {
       await playerApi.play();
       set({ isPlaying: true });
+      get().showOsd('Putar');
     }
   },
 
   play: async () => {
     await playerApi.play();
     set({ isPlaying: true });
+    get().showOsd('Putar');
   },
 
   pause: async () => {
     await playerApi.pause();
     set({ isPlaying: false });
+    get().showOsd('Jeda');
   },
 
   seek: async (seconds: number) => {
@@ -144,9 +195,14 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
   },
 
   setVolume: async (volume: number) => {
-    const clamped = Math.max(0, Math.min(100, volume));
+    const clamped = Math.max(0, Math.min(150, Math.round(volume)));
     set({ volume: clamped, isMuted: clamped === 0 });
     await playerApi.setVolume(clamped);
+    if (clamped > 100) {
+      get().showOsd(`Volume: ${clamped}% (⚡ Audio Boost)`);
+    } else {
+      get().showOsd(`Volume: ${clamped}%`);
+    }
   },
 
   toggleMute: async () => {
@@ -154,6 +210,88 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
     const newMuted = !isMuted;
     set({ isMuted: newMuted });
     await playerApi.toggleMute();
+    get().showOsd(newMuted ? 'Bisu (Muted)' : `Volume: ${Math.round(get().volume)}%`);
+  },
+
+  setSpeed: async (speed: number) => {
+    const rounded = Math.round(speed * 100) / 100;
+    set({ speed: rounded });
+    await playerApi.setSpeed(rounded);
+    get().showOsd(`Kecepatan: ${rounded}x`);
+  },
+
+  stepFrame: async (forward = true) => {
+    await playerApi.stepFrame(forward);
+    get().showOsd(forward ? 'Frame +1' : 'Frame -1');
+  },
+
+  setAspectRatio: async (ratio: string) => {
+    set({ aspectRatio: ratio });
+    await playerApi.setAspectRatio(ratio);
+    get().showOsd(`Rasio Aspek: ${ratio === '-1' ? 'Bawaan (Auto)' : ratio}`);
+  },
+
+  adjustSubDelay: async (delta: number) => {
+    const newDelay = Math.round((get().subDelay + delta) * 100) / 100;
+    set({ subDelay: newDelay });
+    await playerApi.setSubDelay(newDelay);
+    get().showOsd(`Subtitle Delay: ${newDelay > 0 ? `+${newDelay}` : newDelay}s`);
+  },
+
+  adjustAudioDelay: async (delta: number) => {
+    const newDelay = Math.round((get().audioDelay + delta) * 100) / 100;
+    set({ audioDelay: newDelay });
+    await playerApi.setAudioDelay(newDelay);
+    get().showOsd(`Audio Delay: ${newDelay > 0 ? `+${newDelay}` : newDelay}s`);
+  },
+
+  adjustSubScale: async (delta: number) => {
+    const newScale = Math.max(0.5, Math.min(3.0, Math.round((get().subScale + delta) * 10) / 10));
+    set({ subScale: newScale });
+    await playerApi.setSubScale(newScale);
+    get().showOsd(`Ukuran Subtitle: ${newScale}x`);
+  },
+
+  addSubtitleFile: async (path: string) => {
+    await playerApi.addSubtitleFile(path);
+    const tracks = await playerApi.getTracks();
+    set({ tracks });
+    get().showOsd(`Subtitle Ditambahkan: ${path.split(/[\\/]/).pop()}`);
+  },
+
+  openSubtitleDialog: async () => {
+    const path = await playerApi.openSubtitleDialog();
+    if (path) {
+      await get().addSubtitleFile(path);
+    }
+  },
+
+  takeScreenshot: async () => {
+    try {
+      await playerApi.takeScreenshot();
+      get().showOsd('📸 Screenshot Berhasil Disimpan');
+    } catch (err) {
+      console.error(err);
+    }
+  },
+
+  toggleAlwaysOnTop: async () => {
+    const next = await playerApi.toggleAlwaysOnTop();
+    set({ isAlwaysOnTop: next });
+    get().showOsd(next ? '📌 Always on Top: Aktif' : 'Always on Top: Nonaktif');
+  },
+
+  toggleStatsVisible: () => {
+    const next = !get().isStatsVisible;
+    set({ isStatsVisible: next });
+    if (next) {
+      get().refreshStats();
+    }
+  },
+
+  refreshStats: async () => {
+    const stats = await playerApi.getStats();
+    set({ stats });
   },
 
   setControlsVisible: (visible: boolean) => {
@@ -167,6 +305,8 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
         t.type === 'sub' ? { ...t, selected: t.id === trackId } : t
       ),
     }));
+    const track = get().tracks.find((t) => t.id === trackId);
+    get().showOsd(`Subtitle: ${track?.title || track?.lang || 'Track ' + trackId}`);
   },
 
   selectAudioTrack: async (trackId: number) => {
@@ -176,6 +316,8 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
         t.type === 'audio' ? { ...t, selected: t.id === trackId } : t
       ),
     }));
+    const track = get().tracks.find((t) => t.id === trackId);
+    get().showOsd(`Audio: ${track?.title || track?.lang || 'Track ' + trackId}`);
   },
 
   toggleFullscreen: async () => {

@@ -64,3 +64,24 @@ export interface PlayerDurationUpdate {
 export interface PlayerPauseUpdate {
   paused: boolean;
 }
+
+export interface ChapterInfo {
+  id: number;
+  title?: string;
+  time: number;
+}
+
+export interface VideoStats {
+  hwdecCurrent?: string;
+  estimatedFps?: number;
+  dropFrameCount?: number;
+  videoBitrate?: number;
+  audioBitrate?: number;
+  audioChannels?: string;
+  audioSamplerate?: number;
+  audioCodec?: string;
+  videoCodec?: string;
+  aspectRatio?: string;
+}
+
+export type AspectRatioOption = 'auto' | '16:9' | '4:3' | '2.35:1' | 'original';

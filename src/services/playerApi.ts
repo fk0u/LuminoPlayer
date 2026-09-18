@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { MediaMetadata, MpvEventPayload, TrackInfo } from '../types/player';
+import type { ChapterInfo, MediaMetadata, MpvEventPayload, TrackInfo, VideoStats } from '../types/player';
 
 export const isTauriEnvironment = (): boolean => {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -63,14 +63,123 @@ export const playerApi = {
   },
 
   /**
-   * Set player volume (0.0 to 100.0)
+   * Set player volume (0.0 to 150.0 for audio boost)
    */
   async setVolume(volume: number): Promise<void> {
     if (!isTauriEnvironment()) {
       console.warn('[Web Mock] setVolume:', volume);
       return;
     }
-    await invoke('set_volume', { volume: Math.max(0, Math.min(100, volume)) });
+    await invoke('set_volume', { volume: Math.max(0, Math.min(150, volume)) });
+  },
+
+  /**
+   * Set playback speed (0.25x - 4.0x)
+   */
+  async setSpeed(speed: number): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_speed', { speed });
+  },
+
+  /**
+   * Frame by frame step (true = forward, false = back)
+   */
+  async stepFrame(forward = true): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('step_frame', { forward });
+  },
+
+  /**
+   * Set aspect ratio override ("-1" for auto, "16:9", "4:3", "2.35:1")
+   */
+  async setAspectRatio(ratio: string): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_aspect_ratio', { ratio });
+  },
+
+  /**
+   * Subtitle delay in seconds (+/-)
+   */
+  async setSubDelay(seconds: number): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_sub_delay', { seconds });
+  },
+
+  /**
+   * Audio delay in seconds (+/-)
+   */
+  async setAudioDelay(seconds: number): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_audio_delay', { seconds });
+  },
+
+  /**
+   * Subtitle scale factor (0.5 to 3.0)
+   */
+  async setSubScale(scale: number): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_sub_scale', { scale });
+  },
+
+  /**
+   * Add external subtitle file
+   */
+  async addSubtitleFile(path: string): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('add_subtitle_file', { path });
+  },
+
+  /**
+   * Open native subtitle file picker
+   */
+  async openSubtitleDialog(): Promise<string | null> {
+    if (!isTauriEnvironment()) return null;
+    return await invoke<string | null>('open_subtitle_dialog');
+  },
+
+  /**
+   * Take screenshot of current frame
+   */
+  async takeScreenshot(): Promise<string> {
+    if (!isTauriEnvironment()) return 'Mock screenshot';
+    return await invoke<string>('take_screenshot');
+  },
+
+  /**
+   * Get real-time video stats for OSD HUD
+   */
+  async getStats(): Promise<VideoStats> {
+    if (!isTauriEnvironment()) {
+      return {
+        hwdecCurrent: 'd3d11va (copy-back)',
+        estimatedFps: 59.94,
+        dropFrameCount: 0,
+        videoBitrate: 8540000,
+        audioBitrate: 1536000,
+        audioChannels: 'stereo',
+        audioSamplerate: 48000,
+        audioCodec: 'flac',
+        videoCodec: 'hevc',
+        aspectRatio: '16:9',
+      };
+    }
+    return await invoke<VideoStats>('get_stats');
+  },
+
+  /**
+   * Get chapters list
+   */
+  async getChapters(): Promise<ChapterInfo[]> {
+    if (!isTauriEnvironment()) return [];
+    return await invoke<ChapterInfo[]>('get_chapters');
+  },
+
+  /**
+   * Toggle Always-On-Top window mode
+   */
+  async toggleAlwaysOnTop(): Promise<boolean> {
+    if (!isTauriEnvironment()) return false;
+    return await invoke<boolean>('window_toggle_always_on_top');
   },
 
   /**

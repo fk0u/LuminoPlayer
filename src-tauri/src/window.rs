@@ -88,3 +88,13 @@ pub fn window_toggle_fullscreen<R: Runtime>(window: WebviewWindow<R>) -> Result<
     window.set_fullscreen(next_state).map_err(|e| e.to_string())?;
     Ok(next_state)
 }
+
+#[tauri::command]
+pub fn window_toggle_always_on_top<R: Runtime>(window: WebviewWindow<R>) -> Result<bool, String> {
+    // Check current state or invert
+    // In Tauri, is_always_on_top can be checked or toggled
+    let is_on_top = window.is_always_on_top().unwrap_or(false);
+    let next = !is_on_top;
+    window.set_always_on_top(next).map_err(|e| e.to_string())?;
+    Ok(next)
+}
