@@ -1,0 +1,30 @@
+[package]
+name = "lumino-player"
+version = "0.1.0"
+description = "Enterprise-Grade Minimalist Desktop Media Player for Windows 11"
+authors = ["Lumino Team"]
+edition = "2021"
+
+[lib]
+name = "lumino_player_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.3.1", features = [] }
+tauri-plugin-opener = "2.2.6"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+window-vibrancy = "0.5"
+tokio = { version = "1.43", features = ["sync", "time", "rt-multi-thread", "macros"] }
+parking_lot = "0.12"
+libloading = "0.8"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_WindowsAndMessaging",
+] }

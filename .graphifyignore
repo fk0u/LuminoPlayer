@@ -1,0 +1,16 @@
+node_modules/
+.venv/
+venv/
+dist/
+build/
+out/
+dist-electron/
+coverage/
+.vite/
+.next/
+.turbo/
+.cache/
+target/
+src-tauri/target/
+graphify-out/
+graphify-obsidian/
