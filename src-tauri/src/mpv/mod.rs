@@ -50,8 +50,8 @@ impl MpvManager {
         let _ = instance.set_option("gpu-api", "d3d11");
         let _ = instance.set_option("d3d11-exclusive-fs", "no");
         let _ = instance.set_option("keep-open", "yes");
-        let _ = instance.set_option("idle", "yes");
-        let _ = instance.set_option("sub-auto", "all");
+        let _ = instance.set_option("sub-auto", "fuzzy");
+        let _ = instance.set_option("sub-file-paths", "sub:subs:subtitles:Subtitles:Subs");
         let _ = instance.set_option("audio-pitch-correction", "yes");
 
         // Attach to native Window ID (HWND) if provided
@@ -275,6 +275,14 @@ impl MpvManager {
         let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
         let clamped = scale.clamp(0.5, 3.0);
         inst.set_property("sub-scale", &clamped.to_string())?;
+        Ok(())
+    }
+
+    pub fn set_sub_pos(&self, pos: i64) -> Result<(), String> {
+        let guard = self.instance.lock();
+        let inst = guard.as_ref().ok_or("MPV instance is not initialized")?;
+        let clamped = pos.clamp(0, 100);
+        inst.set_property("sub-pos", &clamped.to_string())?;
         Ok(())
     }
 

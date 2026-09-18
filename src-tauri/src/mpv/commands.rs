@@ -108,6 +108,11 @@ pub fn set_sub_scale(mpv: State<'_, Arc<MpvManager>>, scale: f64) -> Result<(), 
 }
 
 #[tauri::command]
+pub fn set_sub_pos(mpv: State<'_, Arc<MpvManager>>, pos: i64) -> Result<(), String> {
+    mpv.set_sub_pos(pos)
+}
+
+#[tauri::command]
 pub fn add_subtitle_file(mpv: State<'_, Arc<MpvManager>>, path: String) -> Result<(), String> {
     mpv.add_subtitle_file(&path)
 }

@@ -122,6 +122,14 @@ export const playerApi = {
   },
 
   /**
+   * Subtitle vertical position (0 to 100, 100 = bottom)
+   */
+  async setSubPos(pos: number): Promise<void> {
+    if (!isTauriEnvironment()) return;
+    await invoke('set_sub_pos', { pos: Math.max(0, Math.min(100, pos)) });
+  },
+
+  /**
    * Add external subtitle file
    */
   async addSubtitleFile(path: string): Promise<void> {

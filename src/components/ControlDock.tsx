@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Pin,
+  ScrollText,
 } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 
@@ -45,6 +46,7 @@ export const ControlDock: React.FC = () => {
   const isFullscreen = usePlayerStore((state) => state.isFullscreen);
   const isAlwaysOnTop = usePlayerStore((state) => state.isAlwaysOnTop);
   const isStatsVisible = usePlayerStore((state) => state.isStatsVisible);
+  const isSubtitleDrawerOpen = usePlayerStore((state) => state.isSubtitleDrawerOpen);
   const tracks = usePlayerStore((state) => state.tracks);
   const chapters = usePlayerStore((state) => state.chapters);
   
@@ -57,6 +59,7 @@ export const ControlDock: React.FC = () => {
   const toggleFullscreen = usePlayerStore((state) => state.toggleFullscreen);
   const toggleAlwaysOnTop = usePlayerStore((state) => state.toggleAlwaysOnTop);
   const toggleStatsVisible = usePlayerStore((state) => state.toggleStatsVisible);
+  const toggleSubtitleDrawer = usePlayerStore((state) => state.toggleSubtitleDrawer);
   const selectSubtitleTrack = usePlayerStore((state) => state.selectSubtitleTrack);
   const selectAudioTrack = usePlayerStore((state) => state.selectAudioTrack);
 
@@ -199,17 +202,44 @@ export const ControlDock: React.FC = () => {
                   )}
                 </button>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="150"
-                    value={isMuted ? 0 : volume}
-                    onChange={(e) => setVolume(Number(e.target.value))}
-                    className={`w-24 accent-blue-500 ${isBoost ? 'accent-amber-400' : ''}`}
-                    title={`Volume: ${Math.round(volume)}%`}
-                  />
-                  <span className={`text-[10px] font-mono font-bold w-10 ${isBoost ? 'text-amber-400' : 'text-slate-400'}`}>
+                <div className="flex items-center gap-2.5">
+                  <div className="group/vol relative flex items-center w-24 h-5">
+                    {/* Background Rail Bar */}
+                    <div className="h-1.5 w-full rounded-full bg-white/20 overflow-hidden transition-all group-hover/vol:h-2">
+                      {/* Active Fill Gradient Bar */}
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          isBoost
+                            ? 'bg-gradient-to-r from-blue-500 via-amber-400 to-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]'
+                            : 'bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_8px_rgba(59,130,246,0.6)]'
+                        }`}
+                        style={{ width: `${Math.min(100, ((isMuted ? 0 : volume) / 150) * 100)}%` }}
+                      />
+                    </div>
+
+                    {/* Draggable Range Input Overlaid */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="150"
+                      value={isMuted ? 0 : volume}
+                      onChange={(e) => setVolume(Number(e.target.value))}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      title={`Volume: ${Math.round(volume)}%`}
+                    />
+
+                    {/* Circular Thumb Indicator */}
+                    <div
+                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full pointer-events-none transition-all shadow-md ${
+                        isBoost
+                          ? 'bg-amber-300 ring-2 ring-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,1)]'
+                          : 'bg-white ring-2 ring-blue-500/60 shadow-[0_0_6px_rgba(255,255,255,0.8)]'
+                      }`}
+                      style={{ left: `${Math.min(100, Math.max(0, ((isMuted ? 0 : volume) / 150) * 100))}%` }}
+                    />
+                  </div>
+
+                  <span className={`text-[10px] font-mono font-bold w-10 ${isBoost ? 'text-amber-400' : 'text-slate-300'}`}>
                     {Math.round(volume)}%
                   </span>
                 </div>
@@ -361,6 +391,17 @@ export const ControlDock: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {/* Subtitle Drawer (Interactive Transcript) */}
+                <button
+                  onClick={toggleSubtitleDrawer}
+                  title="Panel Subtitle Geser Otomatis"
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                    isSubtitleDrawerOpen ? 'bg-blue-600/30 text-blue-400 border border-blue-500/30' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <ScrollText className="h-4 w-4" />
+                </button>
 
                 {/* Stats OSD (Ctrl+J) */}
                 <button

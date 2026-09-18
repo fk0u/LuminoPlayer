@@ -48,6 +48,7 @@ pub fn run() {
             mpv_cmds::set_sub_delay,
             mpv_cmds::set_audio_delay,
             mpv_cmds::set_sub_scale,
+            mpv_cmds::set_sub_pos,
             mpv_cmds::add_subtitle_file,
             mpv_cmds::take_screenshot,
             mpv_cmds::get_stats,

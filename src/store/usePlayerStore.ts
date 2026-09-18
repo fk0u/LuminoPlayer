@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { playerApi } from '../services/playerApi';
-import type { ChapterInfo, MediaMetadata, MpvEventPayload, TrackInfo, VideoStats } from '../types/player';
+import type { ChapterInfo, MediaMetadata, MpvEventPayload, TrackInfo, VideoStats, SubtitleCue } from '../types/player';
+import { generateDemoCues } from '../utils/subtitleParser';
 
 interface PlayerStoreState {
   // Playback state
@@ -20,6 +21,14 @@ interface PlayerStoreState {
   subDelay: number;
   audioDelay: number;
   subScale: number;
+  subPosition: number; // 0 (top) to 100 (bottom)
+
+  // Interactive Subtitle Drawer & Modals
+  isSubtitleDrawerOpen: boolean;
+  isAutoSubModalOpen: boolean;
+  isSettingsModalOpen: boolean;
+  subtitleCues: SubtitleCue[];
+  activeCueId: number | null;
 
   // UI Interaction state
   controlsVisible: boolean;
@@ -47,6 +56,8 @@ interface PlayerStoreState {
   adjustSubDelay: (delta: number) => Promise<void>;
   adjustAudioDelay: (delta: number) => Promise<void>;
   adjustSubScale: (delta: number) => Promise<void>;
+  setSubPos: (pos: number) => Promise<void>;
+  adjustSubPos: (delta: number) => Promise<void>;
   addSubtitleFile: (path: string) => Promise<void>;
   openSubtitleDialog: () => Promise<void>;
   takeScreenshot: () => Promise<void>;
@@ -61,6 +72,16 @@ interface PlayerStoreState {
   minimizeWindow: () => Promise<void>;
   maximizeWindow: () => Promise<void>;
   closeWindow: () => Promise<void>;
+
+  // Drawer and Modal Toggles
+  toggleSubtitleDrawer: () => void;
+  setSubtitleDrawerOpen: (open: boolean) => void;
+  toggleAutoSubModal: () => void;
+  setAutoSubModalOpen: (open: boolean) => void;
+  toggleSettingsModal: () => void;
+  setSettingsModalOpen: (open: boolean) => void;
+  loadSubtitleCues: (cues: SubtitleCue[]) => void;
+  clearSubtitleCues: () => void;
 }
 
 let osdTimer: number | null = null;
@@ -80,6 +101,12 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
   subDelay: 0,
   audioDelay: 0,
   subScale: 1.0,
+  subPosition: 100,
+  isSubtitleDrawerOpen: false,
+  isAutoSubModalOpen: false,
+  isSettingsModalOpen: false,
+  subtitleCues: [],
+  activeCueId: null,
   controlsVisible: true,
   isStatsVisible: false,
   osdMessage: null,
@@ -101,12 +128,23 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
       switch (payload.event) {
         case 'time-pos': {
           const time = typeof payload.data === 'number' ? payload.data : 0;
-          set({ currentTime: time });
+          const cues = get().subtitleCues;
+          let matchedCueId: number | null = null;
+          if (cues.length > 0) {
+            const currentCue = cues.find((c) => time >= c.start && time <= c.end);
+            if (currentCue) {
+              matchedCueId = currentCue.id;
+            }
+          }
+          set({ currentTime: time, activeCueId: matchedCueId });
           break;
         }
         case 'duration': {
           const dur = typeof payload.data === 'number' ? payload.data : 0;
           set({ duration: dur });
+          if (dur > 0 && get().subtitleCues.length === 0) {
+            set({ subtitleCues: generateDemoCues(dur, get().metadata?.title) });
+          }
           break;
         }
         case 'pause': {
@@ -116,7 +154,13 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
         }
         case 'file-loaded': {
           set({ isIdle: false, isPlaying: true, speed: 1.0 });
-          playerApi.getMetadata().then((meta) => set({ metadata: meta }));
+          playerApi.getMetadata().then((meta) => {
+            set({ metadata: meta });
+            const dur = get().duration;
+            if (dur > 0 && get().subtitleCues.length === 0) {
+              set({ subtitleCues: generateDemoCues(dur, meta?.title) });
+            }
+          });
           playerApi.getTracks().then((tracks) => set({ tracks }));
           playerApi.getChapters().then((chapters) => set({ chapters }));
           break;
@@ -146,13 +190,16 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
       const meta = await playerApi.getMetadata();
       const tracks = await playerApi.getTracks();
       const chapters = await playerApi.getChapters();
+      const dur = meta.duration || 0;
       set({
         metadata: meta,
         tracks,
         chapters,
+        duration: dur,
         isIdle: false,
         isPlaying: true,
         isBuffering: false,
+        subtitleCues: dur > 0 ? generateDemoCues(dur, meta.title || filePath.split(/[\\/]/).pop()) : [],
       });
       get().showOsd(`Memutar: ${meta.title || filePath.split(/[\\/]/).pop()}`);
     } catch (err) {
@@ -252,6 +299,18 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
     get().showOsd(`Ukuran Subtitle: ${newScale}x`);
   },
 
+  setSubPos: async (pos: number) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(pos)));
+    set({ subPosition: clamped });
+    await playerApi.setSubPos(clamped);
+    get().showOsd(`Posisi Vertikal Subtitle: ${clamped}%`);
+  },
+
+  adjustSubPos: async (delta: number) => {
+    const newPos = Math.max(0, Math.min(100, get().subPosition + delta));
+    await get().setSubPos(newPos);
+  },
+
   addSubtitleFile: async (path: string) => {
     await playerApi.addSubtitleFile(path);
     const tracks = await playerApi.getTracks();
@@ -336,5 +395,37 @@ export const usePlayerStore = create<PlayerStoreState>((set, get) => ({
 
   closeWindow: async () => {
     await playerApi.closeWindow();
+  },
+
+  toggleSubtitleDrawer: () => {
+    set((state) => ({ isSubtitleDrawerOpen: !state.isSubtitleDrawerOpen }));
+  },
+
+  setSubtitleDrawerOpen: (open: boolean) => {
+    set({ isSubtitleDrawerOpen: open });
+  },
+
+  toggleAutoSubModal: () => {
+    set((state) => ({ isAutoSubModalOpen: !state.isAutoSubModalOpen }));
+  },
+
+  setAutoSubModalOpen: (open: boolean) => {
+    set({ isAutoSubModalOpen: open });
+  },
+
+  toggleSettingsModal: () => {
+    set((state) => ({ isSettingsModalOpen: !state.isSettingsModalOpen }));
+  },
+
+  setSettingsModalOpen: (open: boolean) => {
+    set({ isSettingsModalOpen: open });
+  },
+
+  loadSubtitleCues: (cues: SubtitleCue[]) => {
+    set({ subtitleCues: cues });
+  },
+
+  clearSubtitleCues: () => {
+    set({ subtitleCues: [], activeCueId: null });
   },
 }));

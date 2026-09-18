@@ -5,6 +5,9 @@ import { ControlDock } from './components/ControlDock';
 import { StatsOverlay } from './components/StatsOverlay';
 import { ContextMenu } from './components/ContextMenu';
 import { OsdToast } from './components/OsdToast';
+import { SubtitleDrawer } from './components/SubtitleDrawer';
+import { AutoSubtitleModal } from './components/AutoSubtitleModal';
+import { SettingsModal } from './components/SettingsModal';
 import { usePlayerStore } from './store/usePlayerStore';
 import { useIdleTimer } from './hooks/useIdleTimer';
 import { playerApi } from './services/playerApi';
@@ -26,6 +29,9 @@ export const App: React.FC = () => {
   const adjustSubDelay = usePlayerStore((state) => state.adjustSubDelay);
   const takeScreenshot = usePlayerStore((state) => state.takeScreenshot);
   const loadFile = usePlayerStore((state) => state.loadFile);
+  const toggleSubtitleDrawer = usePlayerStore((state) => state.toggleSubtitleDrawer);
+  const toggleSettingsModal = usePlayerStore((state) => state.toggleSettingsModal);
+  const toggleAutoSubModal = usePlayerStore((state) => state.toggleAutoSubModal);
 
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
 
@@ -88,6 +94,27 @@ export const App: React.FC = () => {
       if (e.ctrlKey && e.code === 'KeyT') {
         e.preventDefault();
         toggleAlwaysOnTop();
+        return;
+      }
+
+      // Ctrl + , : Open Settings
+      if (e.ctrlKey && e.code === 'Comma') {
+        e.preventDefault();
+        toggleSettingsModal();
+        return;
+      }
+
+      // Ctrl + Shift + S : Toggle Subtitle Drawer
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyS') {
+        e.preventDefault();
+        toggleSubtitleDrawer();
+        return;
+      }
+
+      // Ctrl + Shift + F : Auto Subtitle Search
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyF') {
+        e.preventDefault();
+        toggleAutoSubModal();
         return;
       }
 
@@ -180,11 +207,14 @@ export const App: React.FC = () => {
     adjustSubDelay,
     takeScreenshot,
     loadFile,
+    toggleSubtitleDrawer,
+    toggleSettingsModal,
+    toggleAutoSubModal,
   ]);
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-transparent select-none">
-      {/* Frameless TitleBar */}
+      {/* Frameless TitleBar with TopMenuBar */}
       <TitleBar />
 
       {/* Main Video & Drag-Drop Surface */}
@@ -209,6 +239,15 @@ export const App: React.FC = () => {
           onClose={() => setContextMenuPos(null)}
         />
       )}
+
+      {/* Interactive Synced Subtitle Panel (Sistem Subtitle Geser Otomatis) */}
+      <SubtitleDrawer />
+
+      {/* Auto Subtitle Downloader & Finder Modal */}
+      <AutoSubtitleModal />
+
+      {/* Comprehensive Settings Modal */}
+      <SettingsModal />
     </div>
   );
 };

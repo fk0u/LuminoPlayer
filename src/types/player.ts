@@ -85,3 +85,10 @@ export interface VideoStats {
 }
 
 export type AspectRatioOption = 'auto' | '16:9' | '4:3' | '2.35:1' | 'original';
+
+export interface SubtitleCue {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+}
